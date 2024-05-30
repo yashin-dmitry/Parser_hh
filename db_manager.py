@@ -1,42 +1,26 @@
 import psycopg2
 
-
 class DBManager:
     def __init__(self, dbname, user, password, host, port):
-        self.conn = psycopg2.connect(dbname=dbname, user=user,
-                                     password=password, host=host, port=port)
+        self.conn = psycopg2.connect(dbname=dbname, user=user, password=password, host=host, port=port)
+        self.cur = self.conn.cursor()
 
-    def get_companies_and_vacancies_count(self):
-        with self.conn.cursor() as cur:
-            cur.execute(
-                "SELECT c.name, COUNT(v.id) FROM companies c JOIN vacancies v "
-                "ON c.id = v.company_id GROUP BY c.id")
-            return cur.fetchall()
+    def add_vacancy(self, company, vacancy):
+        # Проверяем, существует ли компания в базе данных
+        self.cur.execute("SELECT id FROM companies WHERE name = %s", (company,))
+        company_id = self.cur.fetchone()
+        if not company_id:
+            # Если компании нет в базе данных, добавляем ее
+            self.cur.execute("INSERT INTO companies (name) VALUES (%s) RETURNING id", (company,))
+            company_id = self.cur.fetchone()[0]
+        else:
+            company_id = company_id[0]
 
-    def get_all_vacancies(self):
-        with self.conn.cursor() as cur:
-            cur.execute(
-                "SELECT v.name, v.salary, v.url, c.name FROM vacancies v JOIN "
-                "companies c ON v.company_id = c.id")
-            return cur.fetchall()
-
-    def get_avg_salary(self):
-        with self.conn.cursor() as cur:
-            cur.execute("SELECT AVG(v.salary) FROM vacancies v")
-            return cur.fetchone()[0]
-
-    def get_vacancies_with_higher_salary(self):
-        with self.conn.cursor() as cur:
-            cur.execute(
-                "SELECT v.name, v.salary, v.url, c.name FROM vacancies v JOIN "
-                "companies c ON v.company_id = c.id WHERE v.salary > (SELECT "
-                "AVG(v.salary) FROM vacancies v)")
-            return cur.fetchall()
-
-    def get_vacancies_with_keyword(self, keyword):
-        with self.conn.cursor() as cur:
-            cur.execute(
-                "SELECT v.name, v.salary, v.url, c.name FROM vacancies v JOIN "
-                "companies c ON v.company_id = c.id WHERE v.name LIKE %s",
-                (f"%{keyword}%",))
-            return cur.fetchall()
+        # Проверяем, существует ли вакансия в базе данных
+        self.cur.execute("SELECT id FROM vacancies WHERE company_id = %s AND name = %s", (company_id, vacancy['name']))
+        vacancy_id = self.cur.fetchone()
+        if not vacancy_id:
+            # Если вакансии нет в базе данных, добавляем ее
+            self.cur.execute("INSERT INTO vacancies (company_id, name, salary, url) VALUES (%s, %s, %s, %s)",
+                            (company_id, vacancy['name'], vacancy['salary'], vacancy['url']))
+            self.conn.commit()

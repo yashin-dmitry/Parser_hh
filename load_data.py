@@ -1,51 +1,36 @@
-import psycopg2
-
-from main import hh_data
-
-
-def insert_company(conn, company):
-    with conn.cursor() as cur:
-        cur.execute(
-            "INSERT INTO companies (name, url) VALUES (%s, %s) ON CONFLICT DO "
-            "NOTHING",
-            (company["name"], company["url"]))
-        conn.commit()
+import requests
+from bs4 import BeautifulSoup
+from db_manager import DBManager
+from config import COMPANIES, DB_NAME, DB_USER, DB_PASSWORD, DB_HOST, DB_PORT
 
 
-def insert_vacancy(conn, vacancy, company_id):
-    with conn.cursor() as cur:
-        cur.execute(
-            "INSERT INTO vacancies (name, url, salary, company_id) VALUES ("
-            "%s, %s, %s, %s)",
-            (vacancy["name"], vacancy["url"], vacancy["salary"], company_id))
-        conn.commit()
+def load_data():
+    db_manager = DBManager(dbname=DB_NAME, user=DB_USER, password=DB_PASSWORD,
+                           host=DB_HOST, port=DB_PORT)
 
+    for company in COMPANIES:
+        print(f"Parsing vacancies for {company}...")
 
-def load_data_to_db(hh_data):
-    conn = psycopg2.connect(database="hh_db", user="postgres",
-                            password="postgres", host="127.0.0.1", port="5432")
+        # Выполняем запрос к API HeadHunter
+        url = f"https://hh.ru/search/vacancy?text=Сбербанк+AND+Python&area=1"
+        response = requests.get(url)
+        soup = BeautifulSoup(response.text, "html.parser")
 
-    for item in hh_data:
-        company = item["employer"]
-        insert_company(conn, company)
+        # Парсим данные о вакансиях
+        vacancies = soup.find_all("div", class_="vacancy-serp-item")
+        for vacancy in vacancies:
+            title = vacancy.find("a", class_="bloko-link").text.strip()
+            salary = vacancy.find("span", class_="bloko-header-section-3")
+            if salary:
+                salary = salary.text.strip().replace("\xa0", "").replace(" ",
+                                                                         "")
+            else:
+                salary = None
+            url = f"https://hh.ru{vacancy.find('a', class_='bloko-link')['href']}"
 
-        vacancy = item
-        vacancy["salary"] = vacancy["salary"]["from"] if (vacancy["salary"]
-                                                          ["to"] is None) else (
-            f"{vacancy['salary']['from']} - "
-            f"{vacancy['salary']['to']}")
-        del vacancy["employer"]
-        del vacancy["salary"]
-        del vacancy["area"]
-        del vacancy["published_at"]
+            # Загружаем данные в базу данных
+            company_id = db_manager.get_company_id(company)
+            if company_id:
+                db_manager.add_vacancy(company_id, title, salary, url)
 
-        company_id = \
-            conn.cursor().execute("SELECT id FROM companies WHERE name = %s",
-                                  (company["name"],)).fetchone()[0]
-
-        insert_vacancy(conn, vacancy, company_id)
-
-    conn.close()
-
-
-load_data_to_db(hh_data)
+    db_manager.close()
