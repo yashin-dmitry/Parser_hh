@@ -22,5 +22,8 @@ for company in companies:
     vacancies = get_vacancies_by_company(company.strip())
     for vacancy in vacancies:
         db_manager.add_vacancy(company, vacancy)
+        print(f"Adding vacancy: {vacancy['name']}")
+        db_manager.add_vacancy(company, vacancy)
+        print(f"Vacancy added: {vacancy['name']}")
 
 print("Данные успешно добавлены в базу данных")
