@@ -2,6 +2,7 @@ import requests
 
 HEADHUNTER_API_URL = 'https://api.hh.ru/vacancies'
 
+
 def get_vacancies_by_company(company_name):
     """
     Выполняет запрос к API HeadHunter для получения списка вакансий,
@@ -18,6 +19,7 @@ def get_vacancies_by_company(company_name):
     response.raise_for_status()
     vacancies = response.json()['items']
     return {vacancy['id']: vacancy for vacancy in vacancies}
+
 
 def get_vacancy_info(vacancy_id):
     """
