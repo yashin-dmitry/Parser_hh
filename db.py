@@ -1,5 +1,7 @@
 import psycopg2
+
 from config import DB_CONFIG
+
 
 def create_tables():
     conn = psycopg2.connect(**DB_CONFIG)

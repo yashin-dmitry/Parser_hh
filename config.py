@@ -15,4 +15,3 @@ DB_CONFIG = {
 }
 
 COMPANIES = config.get('COMPANIES', 'companies').split(', ')
-
