@@ -1,8 +1,9 @@
 import psycopg2
-from config import DB_NAME, DB_USER, DB_PASSWORD, DB_HOST, DB_PORT
+from config import DB_CONFIG
 
 def init_db():
-    conn = psycopg2.connect(dbname=DB_NAME, user=DB_USER, password=DB_PASSWORD, host=DB_HOST, port=DB_PORT)
+    conn = psycopg2.connect(**DB_CONFIG)
+
     cur = conn.cursor()
     cur.execute("""
         CREATE TABLE IF NOT EXISTS companies (
@@ -23,4 +24,3 @@ def init_db():
     conn.commit()
     cur.close()
     conn.close()
-
