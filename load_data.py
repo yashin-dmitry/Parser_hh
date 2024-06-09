@@ -1,36 +1,26 @@
-import requests
-from bs4 import BeautifulSoup
 from db_manager import DBManager
-from config import COMPANIES, DB_NAME, DB_USER, DB_PASSWORD, DB_HOST, DB_PORT
-
+from config import COMPANIES
+from hh_api import get_vacancies_by_company
 
 def load_data():
-    db_manager = DBManager(dbname=DB_NAME, user=DB_USER, password=DB_PASSWORD,
-                           host=DB_HOST, port=DB_PORT)
+    db_manager = DBManager()
 
     for company in COMPANIES:
         print(f"Parsing vacancies for {company}...")
 
-        # Выполняем запрос к API HeadHunter
-        url = f"https://hh.ru/search/vacancy?text=Сбербанк+AND+Python&area=1"
-        response = requests.get(url)
-        soup = BeautifulSoup(response.text, "html.parser")
+        vacancies = get_vacancies_by_company(company)
 
-        # Парсим данные о вакансиях
-        vacancies = soup.find_all("div", class_="vacancy-serp-item")
         for vacancy in vacancies:
-            title = vacancy.find("a", class_="bloko-link").text.strip()
-            salary = vacancy.find("span", class_="bloko-header-section-3")
-            if salary:
-                salary = salary.text.strip().replace("\xa0", "").replace(" ",
-                                                                         "")
-            else:
-                salary = None
-            url = f"https://hh.ru{vacancy.find('a', class_='bloko-link')['href']}"
+            title = vacancy['name']
+            salary = vacancy['salary']['from'] if vacancy['salary'] else None
+            currency = vacancy['salary']['currency'] if vacancy['salary'] else None
+            url = vacancy['alternate_url']
 
-            # Загружаем данные в базу данных
-            company_id = db_manager.get_company_id(company)
-            if company_id:
-                db_manager.add_vacancy(company_id, title, salary, url)
+            db_manager.add_vacancy(company, title, salary, currency, url)
+            print(f"Added vacancy: {title}")
 
     db_manager.close()
+
+if __name__ == "__main__":
+    load_data()
+

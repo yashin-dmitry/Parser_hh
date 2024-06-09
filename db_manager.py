@@ -1,6 +1,5 @@
 import psycopg2
 
-
 class DBManager:
     def __init__(self, dbname, user, password, host, port):
         self.conn = psycopg2.connect(dbname=dbname, user=user,
@@ -28,9 +27,19 @@ class DBManager:
         if not vacancy_id:
             # Если вакансии нет в базе данных, добавляем ее
             self.cur.execute(
-                "INSERT INTO vacancies (company_id, name, salary, url) VALUES "
-                "(%s, %s, %s, %s)",
+                "INSERT INTO vacancies (company_id, name, salary, currency, url) VALUES "
+                "(%s, %s, %s, %s, %s)",
                 (
                     company_id, vacancy['name'], vacancy['salary'],
-                    vacancy['url']))
+                    vacancy['currency'], vacancy['url']))
             self.conn.commit()
+
+    def get_company_id(self, company_name):
+        self.cur.execute("SELECT id FROM companies WHERE name=%s;", (company_name,))
+        result = self.cur.fetchone()
+        return result[0] if result else None
+
+    def close(self):
+        self.cur.close()
+        self.conn.close()
+
