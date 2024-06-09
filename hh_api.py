@@ -19,3 +19,4 @@ def get_vacancies_by_company(company_name):
     response.raise_for_status()
     vacancies = response.json()['items']
     return {vacancy['id']: vacancy for vacancy in vacancies}
+
