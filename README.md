@@ -29,7 +29,7 @@
 
 3. Используйте класс `DBManager` для работы с данными:
     ```python
-    from db_manager import DBManager
+    from src.db_manager import DBManager
     
     db = DBManager(dbname="your_dbname", user="your_user", password="your_password", host="your_host")
     print(db.get_companies_and_vacancies_count())

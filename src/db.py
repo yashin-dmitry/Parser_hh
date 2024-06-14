@@ -22,9 +22,7 @@ def create_tables():
             url VARCHAR(255)
         );
     """)
-    conn.commit()
-    cur.close()
-    conn.close()
+
 
 create_tables()
 
