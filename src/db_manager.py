@@ -1,9 +1,19 @@
+import configparser
 import psycopg2
 
 class DBManager:
-    def __init__(self, dbname, user, password, host, port):
-        self.conn = psycopg2.connect(dbname=dbname, user=user,
-                                     password=password, host=host, port=port)
+    def __init__(self, config_path):
+        config = configparser.ConfigParser()
+        config.read(config_path)
+
+        db_config = config['DB']
+        self.conn = psycopg2.connect(
+            dbname=db_config['dbname'],
+            user=db_config['user'],
+            password=db_config['password'],
+            host=db_config['host'],
+            port=db_config['port']
+        )
         self.cur = self.conn.cursor()
         self._create_tables()
 
